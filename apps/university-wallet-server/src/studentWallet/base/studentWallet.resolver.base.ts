@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { StudentWallet } from "./StudentWallet";
 import { StudentWalletCountArgs } from "./StudentWalletCountArgs";
 import { StudentWalletFindManyArgs } from "./StudentWalletFindManyArgs";
@@ -23,10 +29,20 @@ import { DeleteStudentWalletArgs } from "./DeleteStudentWalletArgs";
 import { TransactionFindManyArgs } from "../../transaction/base/TransactionFindManyArgs";
 import { Transaction } from "../../transaction/base/Transaction";
 import { StudentWalletService } from "../studentWallet.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => StudentWallet)
 export class StudentWalletResolverBase {
-  constructor(protected readonly service: StudentWalletService) {}
+  constructor(
+    protected readonly service: StudentWalletService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "read",
+    possession: "any",
+  })
   async _studentWalletsMeta(
     @graphql.Args() args: StudentWalletCountArgs
   ): Promise<MetaQueryPayload> {
@@ -36,14 +52,26 @@ export class StudentWalletResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [StudentWallet])
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "read",
+    possession: "any",
+  })
   async studentWallets(
     @graphql.Args() args: StudentWalletFindManyArgs
   ): Promise<StudentWallet[]> {
     return this.service.studentWallets(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => StudentWallet, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "read",
+    possession: "own",
+  })
   async studentWallet(
     @graphql.Args() args: StudentWalletFindUniqueArgs
   ): Promise<StudentWallet | null> {
@@ -54,7 +82,13 @@ export class StudentWalletResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => StudentWallet)
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "create",
+    possession: "any",
+  })
   async createStudentWallet(
     @graphql.Args() args: CreateStudentWalletArgs
   ): Promise<StudentWallet> {
@@ -64,7 +98,13 @@ export class StudentWalletResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => StudentWallet)
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "update",
+    possession: "any",
+  })
   async updateStudentWallet(
     @graphql.Args() args: UpdateStudentWalletArgs
   ): Promise<StudentWallet | null> {
@@ -84,6 +124,11 @@ export class StudentWalletResolverBase {
   }
 
   @graphql.Mutation(() => StudentWallet)
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "delete",
+    possession: "any",
+  })
   async deleteStudentWallet(
     @graphql.Args() args: DeleteStudentWalletArgs
   ): Promise<StudentWallet | null> {
@@ -99,7 +144,13 @@ export class StudentWalletResolverBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.ResolveField(() => [Transaction], { name: "transactions" })
+  @nestAccessControl.UseRoles({
+    resource: "Transaction",
+    action: "read",
+    possession: "any",
+  })
   async findTransactions(
     @graphql.Parent() parent: StudentWallet,
     @graphql.Args() args: TransactionFindManyArgs

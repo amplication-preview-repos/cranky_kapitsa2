@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { AdminWallet } from "./AdminWallet";
 import { AdminWalletCountArgs } from "./AdminWalletCountArgs";
 import { AdminWalletFindManyArgs } from "./AdminWalletFindManyArgs";
@@ -22,10 +28,20 @@ import { UpdateAdminWalletArgs } from "./UpdateAdminWalletArgs";
 import { DeleteAdminWalletArgs } from "./DeleteAdminWalletArgs";
 import { ListAllWalletsOutput } from "../ListAllWalletsOutput";
 import { AdminWalletService } from "../adminWallet.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => AdminWallet)
 export class AdminWalletResolverBase {
-  constructor(protected readonly service: AdminWalletService) {}
+  constructor(
+    protected readonly service: AdminWalletService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "read",
+    possession: "any",
+  })
   async _adminWalletsMeta(
     @graphql.Args() args: AdminWalletCountArgs
   ): Promise<MetaQueryPayload> {
@@ -35,14 +51,26 @@ export class AdminWalletResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [AdminWallet])
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "read",
+    possession: "any",
+  })
   async adminWallets(
     @graphql.Args() args: AdminWalletFindManyArgs
   ): Promise<AdminWallet[]> {
     return this.service.adminWallets(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => AdminWallet, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "read",
+    possession: "own",
+  })
   async adminWallet(
     @graphql.Args() args: AdminWalletFindUniqueArgs
   ): Promise<AdminWallet | null> {
@@ -53,7 +81,13 @@ export class AdminWalletResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => AdminWallet)
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "create",
+    possession: "any",
+  })
   async createAdminWallet(
     @graphql.Args() args: CreateAdminWalletArgs
   ): Promise<AdminWallet> {
@@ -63,7 +97,13 @@ export class AdminWalletResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => AdminWallet)
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "update",
+    possession: "any",
+  })
   async updateAdminWallet(
     @graphql.Args() args: UpdateAdminWalletArgs
   ): Promise<AdminWallet | null> {
@@ -83,6 +123,11 @@ export class AdminWalletResolverBase {
   }
 
   @graphql.Mutation(() => AdminWallet)
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "delete",
+    possession: "any",
+  })
   async deleteAdminWallet(
     @graphql.Args() args: DeleteAdminWalletArgs
   ): Promise<AdminWallet | null> {

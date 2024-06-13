@@ -16,7 +16,11 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { AdminWalletService } from "../adminWallet.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { AdminWalletCreateInput } from "./AdminWalletCreateInput";
 import { AdminWallet } from "./AdminWallet";
 import { AdminWalletFindManyArgs } from "./AdminWalletFindManyArgs";
@@ -24,10 +28,24 @@ import { AdminWalletWhereUniqueInput } from "./AdminWalletWhereUniqueInput";
 import { AdminWalletUpdateInput } from "./AdminWalletUpdateInput";
 import { ListAllWalletsOutput } from "../ListAllWalletsOutput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class AdminWalletControllerBase {
-  constructor(protected readonly service: AdminWalletService) {}
+  constructor(
+    protected readonly service: AdminWalletService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: AdminWallet })
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createAdminWallet(
     @common.Body() data: AdminWalletCreateInput
   ): Promise<AdminWallet> {
@@ -44,9 +62,18 @@ export class AdminWalletControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [AdminWallet] })
   @ApiNestedQuery(AdminWalletFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async adminWallets(@common.Req() request: Request): Promise<AdminWallet[]> {
     const args = plainToClass(AdminWalletFindManyArgs, request.query);
     return this.service.adminWallets({
@@ -62,9 +89,18 @@ export class AdminWalletControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: AdminWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async adminWallet(
     @common.Param() params: AdminWalletWhereUniqueInput
   ): Promise<AdminWallet | null> {
@@ -87,9 +123,18 @@ export class AdminWalletControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: AdminWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateAdminWallet(
     @common.Param() params: AdminWalletWhereUniqueInput,
     @common.Body() data: AdminWalletUpdateInput
@@ -120,6 +165,14 @@ export class AdminWalletControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: AdminWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "AdminWallet",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteAdminWallet(
     @common.Param() params: AdminWalletWhereUniqueInput
   ): Promise<AdminWallet | null> {

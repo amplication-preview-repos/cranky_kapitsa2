@@ -16,7 +16,11 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { StudentWalletService } from "../studentWallet.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { StudentWalletCreateInput } from "./StudentWalletCreateInput";
 import { StudentWallet } from "./StudentWallet";
 import { StudentWalletFindManyArgs } from "./StudentWalletFindManyArgs";
@@ -26,10 +30,24 @@ import { TransactionFindManyArgs } from "../../transaction/base/TransactionFindM
 import { Transaction } from "../../transaction/base/Transaction";
 import { TransactionWhereUniqueInput } from "../../transaction/base/TransactionWhereUniqueInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class StudentWalletControllerBase {
-  constructor(protected readonly service: StudentWalletService) {}
+  constructor(
+    protected readonly service: StudentWalletService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: StudentWallet })
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createStudentWallet(
     @common.Body() data: StudentWalletCreateInput
   ): Promise<StudentWallet> {
@@ -46,9 +64,18 @@ export class StudentWalletControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [StudentWallet] })
   @ApiNestedQuery(StudentWalletFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async studentWallets(
     @common.Req() request: Request
   ): Promise<StudentWallet[]> {
@@ -66,9 +93,18 @@ export class StudentWalletControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: StudentWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async studentWallet(
     @common.Param() params: StudentWalletWhereUniqueInput
   ): Promise<StudentWallet | null> {
@@ -91,9 +127,18 @@ export class StudentWalletControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: StudentWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateStudentWallet(
     @common.Param() params: StudentWalletWhereUniqueInput,
     @common.Body() data: StudentWalletUpdateInput
@@ -124,6 +169,14 @@ export class StudentWalletControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: StudentWallet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteStudentWallet(
     @common.Param() params: StudentWalletWhereUniqueInput
   ): Promise<StudentWallet | null> {
@@ -149,8 +202,14 @@ export class StudentWalletControllerBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id/transactions")
   @ApiNestedQuery(TransactionFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Transaction",
+    action: "read",
+    possession: "any",
+  })
   async findTransactions(
     @common.Req() request: Request,
     @common.Param() params: StudentWalletWhereUniqueInput
@@ -184,6 +243,11 @@ export class StudentWalletControllerBase {
   }
 
   @common.Post("/:id/transactions")
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "update",
+    possession: "any",
+  })
   async connectTransactions(
     @common.Param() params: StudentWalletWhereUniqueInput,
     @common.Body() body: TransactionWhereUniqueInput[]
@@ -201,6 +265,11 @@ export class StudentWalletControllerBase {
   }
 
   @common.Patch("/:id/transactions")
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "update",
+    possession: "any",
+  })
   async updateTransactions(
     @common.Param() params: StudentWalletWhereUniqueInput,
     @common.Body() body: TransactionWhereUniqueInput[]
@@ -218,6 +287,11 @@ export class StudentWalletControllerBase {
   }
 
   @common.Delete("/:id/transactions")
+  @nestAccessControl.UseRoles({
+    resource: "StudentWallet",
+    action: "update",
+    possession: "any",
+  })
   async disconnectTransactions(
     @common.Param() params: StudentWalletWhereUniqueInput,
     @common.Body() body: TransactionWhereUniqueInput[]
