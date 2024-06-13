@@ -1,0 +1,59 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminWallet {
+  createdAt    DateTime @default(now())
+  dailyCap     Float?
+  id           String   @id @default(cuid())
+  monthlyCap   Float?
+  totalBalance Float?
+  updatedAt    DateTime @updatedAt
+}
+
+model StudentWallet {
+  balance          Float?
+  createdAt        DateTime      @default(now())
+  id               String        @id @default(cuid())
+  locked           Boolean?
+  transactions     Transaction[]
+  uniqueIdentifier String?
+  updatedAt        DateTime      @updatedAt
+}
+
+model Transaction {
+  amount          Float?
+  createdAt       DateTime                        @default(now())
+  createdDate     DateTime?
+  id              String                          @id @default(cuid())
+  status          EnumTransactionStatus?
+  studentWallet   StudentWallet?                  @relation(fields: [studentWalletId], references: [id])
+  studentWalletId String?
+  transactionType EnumTransactionTransactionType?
+  updatedAt       DateTime                        @updatedAt
+}
+
+model User {
+  createdAt DateTime @default(now())
+  email     String?  @unique
+  firstName String?
+  id        String   @id @default(cuid())
+  lastName  String?
+  password  String
+  roles     Json
+  updatedAt DateTime @updatedAt
+  username  String   @unique
+}
+
+enum EnumTransactionStatus {
+  Option1
+}
+
+enum EnumTransactionTransactionType {
+  Option1
+}
